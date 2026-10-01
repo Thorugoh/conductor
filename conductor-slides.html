@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conductor Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #221f1d;
+    --surface: #2c2826;
+    --border: #3d3835;
+    --fg: #eae8e6;
+    --muted: #a8a29e;
+    --accent: #f99c00;
+    --radius: 12px;
+    /* modular scale, ratio 1.5, base 32 */
+    --t-cap: 21px;
+    --t-body: 32px;
+    --t-sub: 48px;
+    --t-h: 72px;
+    --t-hero: 108px;
+    --sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+    --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #141211; overflow: hidden; }
+  body { font-family: var(--sans); color: var(--fg); -webkit-font-smoothing: antialiased; }
+
+  .viewport { position: fixed; inset: 0; overflow: hidden; }
+  .stage {
+    position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px;
+    background: var(--bg); transform-origin: center center; overflow: hidden;
+    transform: translate(-50%, -50%);
+  }
+  .slide {
+    position: absolute; inset: 0; padding: 128px;
+    display: none; flex-direction: column;
+  }
+  .slide.active { display: flex; }
+
+  /* persistent chrome: logo bottom-left, counter bottom-right — inside the 96px safe zone */
+  .brand {
+    position: absolute; left: 128px; bottom: 96px; z-index: 2;
+    display: flex; align-items: center; gap: 16px;
+    font-size: var(--t-cap); font-weight: 600; letter-spacing: -0.01em; color: var(--fg);
+  }
+  .brand svg { height: 32px; width: auto; }
+  .counter {
+    position: absolute; right: 128px; bottom: 96px; z-index: 2;
+    font-family: var(--mono); font-size: var(--t-cap); color: var(--muted);
+  }
+
+  .kicker {
+    font-family: var(--mono); font-size: var(--t-cap); color: var(--muted);
+    letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 24px;
+  }
+  h1, h2 { font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
+  h1 { font-size: var(--t-hero); line-height: 1.05; }
+  h2 { font-size: var(--t-h); max-width: 1440px; }
+  .lede { font-size: var(--t-body); line-height: 1.5; color: var(--muted); max-width: 30ch; margin-top: 32px; }
+  .em { color: var(--accent); }
+  .body { margin-top: 96px; }
+
+  /* cards */
+  .grid { display: grid; grid-template-columns: repeat(12, 1fr); column-gap: 32px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 48px;
+  }
+  .card h3 kbd { margin-left: 8px; vertical-align: middle; }
+  .card h3 { font-size: var(--t-body); font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
+  .card p { font-size: var(--t-cap); line-height: 1.5; color: var(--muted); margin-top: 16px; }
+  .card .num { font-family: var(--mono); font-size: var(--t-cap); color: var(--muted); margin-bottom: 24px; }
+  .span-3 { grid-column: span 3; } .span-4 { grid-column: span 4; } .span-6 { grid-column: span 6; }
+
+  .mono { font-family: var(--mono); }
+  kbd {
+    font-family: var(--mono); font-size: var(--t-cap); color: var(--fg);
+    border: 1px solid var(--border); border-radius: 8px; padding: 0 8px; background: var(--bg);
+  }
+
+  /* equation row */
+  .eq { display: flex; align-items: center; gap: 32px; }
+  .eq .card { flex: 1; text-align: left; }
+  .eq .op { font-size: var(--t-sub); color: var(--muted); font-weight: 400; }
+
+  /* code */
+  pre {
+    font-family: var(--mono); font-size: var(--t-body); line-height: 1.5;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 48px 64px; color: var(--fg);
+  }
+  pre .c { color: var(--muted); }
+  pre .k { color: var(--accent); }
+
+  /* flow diagram */
+  .flow { display: grid; grid-template-columns: 1fr 64px 2fr 64px 1fr 64px 1fr; align-items: center; }
+  .flow .node {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 32px; font-size: var(--t-body); font-weight: 600; line-height: 1.2;
+  }
+  .flow .node small { display: block; font-size: var(--t-cap); font-weight: 400; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+  .flow .lanes { display: flex; flex-direction: column; gap: 16px; }
+  .flow .lane {
+    border: 2px solid var(--accent); border-radius: var(--radius); padding: 16px 32px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--mono); font-size: var(--t-cap);
+  }
+  .flow .lane span:last-child { color: var(--muted); }
+  .arrow { display: grid; place-items: center; }
+  .arrow svg { width: 48px; height: 24px; }
+
+  /* agent chips */
+  .chips { display: flex; gap: 24px; flex-wrap: wrap; }
+  .chip {
+    font-size: var(--t-sub); font-weight: 600; letter-spacing: -0.02em;
+    padding: 24px 48px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface);
+  }
+
+  /* title slide */
+  .title-slide { justify-content: center; }
+  .title-slide .mark svg { height: 128px; width: auto; margin-bottom: 64px; }
+
+  .meta { font-family: var(--mono); font-size: var(--t-cap); color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; margin-top: 64px; }
+  .cta { font-family: var(--mono); font-size: var(--t-sub); color: var(--accent); margin-top: 48px; }
+
+
+  /* media */
+  .shot { display: block; width: 100%; height: auto; border-radius: var(--radius); }
+  .frame { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: #000; }
+  .frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .hero-photo {
+    position: absolute; right: 128px; top: 50%; transform: translateY(-50%);
+    width: 957px; aspect-ratio: 16 / 9; border-radius: var(--radius); overflow: hidden;
+  }
+  .hero-photo img { width: 100%; height: 100%; object-fit: cover; filter: sepia(0.15); }
+  .split { display: grid; grid-template-columns: repeat(12, 1fr); column-gap: 32px; align-items: center; flex: 1; }
+  .split .text { grid-column: span 5; }
+  .split .media { grid-column: span 7; }
+  .split h2 { font-size: var(--t-h); }
+  .stack { display: flex; flex-direction: column; gap: 16px; }
+  .stack .card { padding: 32px; }
+  .stack .op { font-size: var(--t-body); color: var(--muted); padding-left: 32px; line-height: 1; }
+  .credit { position: absolute; right: 0; bottom: -32px; font-size: 14px; color: var(--muted); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .slide.active { animation: fade 200ms ease-out; }
+    @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  }
+</style>
+</head>
+<body>
+<div class="viewport">
+<div class="stage" id="stage">
+
+  <!-- 1 · Title -->
+  <section class="slide title-slide">
+    <div class="mark"><svg viewBox="0 0 115 174" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="m0__20251" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="36" width="23" height="29">
+<path d="M0.499023 63.6992V37.251H22.373V63.6992H0.499023Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#m0__20251)">
+<path d="M4.57422 63.6992H22.373V37.251H4.57422C3.58785 37.2511 2.78711 38.0517 2.78711 39.0381V61.9121C2.78725 62.8984 3.58794 63.6991 4.57422 63.6992Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask1_0" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="18" y="36" width="24" height="29">
+<path d="M18.7979 63.6992V37.251H40.6719V63.6992H18.7979Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask1_0)">
+<path d="M36.5977 63.6992H18.7988V37.251H36.5977C37.584 37.2511 38.3848 38.0517 38.3848 39.0381V61.9121C38.3846 62.8984 37.5839 63.6991 36.5977 63.6992Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask2_0" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="73" width="23" height="28">
+<path d="M0.499023 100.297V73.8486H22.373V100.297H0.499023Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask2_0)">
+<path d="M4.57422 100.297H22.373V73.8486H4.57422C3.58785 73.8488 2.78711 74.6493 2.78711 75.6357V98.5098C2.78725 99.496 3.58794 100.297 4.57422 100.297Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask3_0" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="18" y="73" width="24" height="28">
+<path d="M18.7979 100.297V73.8486H40.6719V100.297H18.7979Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask3_0)">
+<path d="M36.5977 100.297H18.7988V73.8486H36.5977C37.584 73.8488 38.3848 74.6493 38.3848 75.6357V98.5098C38.3846 99.496 37.5839 100.297 36.5977 100.297Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask4_0" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="109" width="23" height="29">
+<path d="M0.499023 136.896V110.447H22.373V136.896H0.499023Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask4_0)">
+<path d="M4.57422 136.896H22.373V110.447H4.57422C3.58785 110.447 2.78711 111.248 2.78711 112.234V135.108C2.78725 136.095 3.58794 136.895 4.57422 136.896Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask5_0" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="18" y="109" width="24" height="29">
+<path d="M18.7979 136.896V110.447H40.6719V136.896H18.7979Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask5_0)">
+<path d="M36.5977 136.896H18.7988V110.447H36.5977C37.584 110.447 38.3848 111.248 38.3848 112.234V135.108C38.3846 136.095 37.5839 136.895 36.5977 136.896Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask6_0" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="18" y="146" width="24" height="28">
+<path d="M18.7979 173.493V147.045H40.6719V173.493H18.7979Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask6_0)">
+<path d="M22.873 173.493H40.6719V147.045H22.873C21.8867 147.045 21.0859 147.846 21.0859 148.832V171.706C21.0861 172.692 21.8868 173.493 22.873 173.493Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask7_0" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="36" y="146" width="24" height="28">
+<path d="M37.0967 173.493V147.045H58.9707V173.493H37.0967Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask7_0)">
+<path d="M37.0967 173.493V147.045H58.9707V173.493H37.0967Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask8_0" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="54" y="146" width="24" height="28">
+<path d="M55.3955 173.493V147.045H77.2695V173.493H55.3955Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask8_0)">
+<path d="M55.3955 173.493V147.045H77.2695V173.493H55.3955Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask9_0" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="73" y="146" width="24" height="28">
+<path d="M73.6963 173.493V147.045H95.5703V173.493H73.6963Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask9_0)">
+<path d="M91.4941 173.493H73.6953V147.045H91.4941C92.4805 147.045 93.2812 147.846 93.2812 148.832V171.706C93.2811 172.692 92.4804 173.493 91.4941 173.493Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask10_0" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="73" y="109" width="24" height="29">
+<path d="M73.6963 136.896V110.447H95.5703V136.896H73.6963Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask10_0)">
+<path d="M77.7695 136.896H95.5684V110.447H77.7695C76.7832 110.447 75.9824 111.248 75.9824 112.234V135.108C75.9826 136.095 76.7833 136.895 77.7695 136.896Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask11_0" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="91" y="109" width="24" height="29">
+<path d="M91.9932 136.896V110.447H113.867V136.896H91.9932Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask11_0)">
+<path d="M109.793 136.896H91.9941V110.447H109.793C110.779 110.447 111.58 111.248 111.58 112.234V135.108C111.58 136.095 110.779 136.895 109.793 136.896Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask12_0" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="18" y="0" width="24" height="28">
+<path d="M18.7979 27.1006V0.652344H40.6719V27.1006H18.7979Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask12_0)">
+<path d="M22.873 27.1006H40.6719V0.652344H22.873C21.8867 0.652488 21.0859 1.45305 21.0859 2.43945V25.3135C21.0861 26.2998 21.8868 27.1004 22.873 27.1006Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask13_0" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="36" y="0" width="24" height="28">
+<path d="M37.0967 27.1006V0.652344H58.9707V27.1006H37.0967Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask13_0)">
+<path d="M37.0967 27.1006V0.652344H58.9707V27.1006H37.0967Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask14_0" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="54" y="0" width="24" height="28">
+<path d="M55.3955 27.1006V0.652344H77.2695V27.1006H55.3955Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask14_0)">
+<path d="M55.3955 27.1006V0.652344H77.2695V27.1006H55.3955Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask15_0" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="73" y="0" width="24" height="28">
+<path d="M73.6963 27.1006V0.652344H95.5703V27.1006H73.6963Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask15_0)">
+<path d="M73.6963 27.1006V0.652344H95.5703V27.1006H73.6963Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask16_0" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="91" y="0" width="24" height="28">
+<path d="M91.9932 27.1006V0.652344H113.867V27.1006H91.9932Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask16_0)">
+<path d="M109.793 27.1006H91.9941V0.652344H109.793C110.779 0.652488 111.58 1.45305 111.58 2.43945V25.3135C111.58 26.2998 110.779 27.1004 109.793 27.1006Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask17_0" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="73" y="36" width="24" height="29">
+<path d="M73.6963 63.6992V37.251H95.5703V63.6992H73.6963Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask17_0)">
+<path d="M77.7695 63.6992H95.5684V37.251H77.7695C76.7832 37.2511 75.9824 38.0517 75.9824 39.0381V61.9121C75.9826 62.8984 76.7833 63.6991 77.7695 63.6992Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask18_0" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="91" y="36" width="24" height="29">
+<path d="M91.9932 63.6992V37.251H113.867V63.6992H91.9932Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask18_0)">
+<path d="M109.793 63.6992H91.9941V37.251H109.793C110.779 37.2511 111.58 38.0517 111.58 39.0381V61.9121C111.58 62.8984 110.779 63.6991 109.793 63.6992Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+</svg>
+</div>
+    <h1>Conductor</h1>
+    <p class="lede">How to run several coding agents <span class="em">at once</span>.</p>
+    <p class="meta">Lunch &rsquo;N Learn · Victor Hugo</p>
+    <figure class="hero-photo"><img src="assets/conductor-orchestra.webp" alt="An orchestra conductor mid-performance, arms raised"></figure>
+  </section>
+
+  <!-- 2 · Problem -->
+  <section class="slide">
+    <div class="kicker">The problem</div>
+    <h2>One working copy, <span class="em">one task at a time</span>.</h2>
+    <p class="lede" style="max-width:48ch">Running a second agent in the same folder means conflicting edits, so the rest of the work waits.</p>
+  </section>
+
+  <!-- 3 · What it is -->
+  <section class="slide">
+    <div class="split">
+      <div class="text">
+        <div class="kicker">What it is</div>
+        <h2>A Mac app that runs coding agents <span class="em">side by side</span>.</h2>
+        <p class="lede">Each agent works in its own copy of the repo, so they don&rsquo;t step on each other.</p>
+      </div>
+      <div class="media"><img class="shot" src="assets/conductor-app-hero-dark.webp" alt="Conductor app: workspace list, agent chat, and changed files panel"></div>
+    </div>
+  </section>
+
+  <!-- 4 · How it works -->
+  <section class="slide">
+    <div class="kicker">How it works</div>
+    <h2>The loop: fan out, review, merge.</h2>
+    <div class="flow body">
+      <div class="node">Your repo<small>origin/main</small></div>
+      <div class="arrow"><svg viewBox="0 0 48 24" fill="none" stroke="#a8a29e" stroke-width="2"><path d="M0 12h44M36 4l8 8-8 8"/></svg></div>
+      <div class="lanes">
+        <div class="lane"><span>workspace · auth-fix</span><span>Claude Code</span></div>
+        <div class="lane"><span>workspace · dark-mode</span><span>Codex</span></div>
+        <div class="lane"><span>workspace · issue-412</span><span>Cursor</span></div>
+      </div>
+      <div class="arrow"><svg viewBox="0 0 48 24" fill="none" stroke="#a8a29e" stroke-width="2"><path d="M0 12h44M36 4l8 8-8 8"/></svg></div>
+      <div class="node">Review<small>diff + checks</small></div>
+      <div class="arrow"><svg viewBox="0 0 48 24" fill="none" stroke="#a8a29e" stroke-width="2"><path d="M0 12h44M36 4l8 8-8 8"/></svg></div>
+      <div class="node">PR &amp; merge<small>then archive</small></div>
+    </div>
+  </section>
+
+  <!-- 5 · Workspace -->
+  <section class="slide">
+    <div class="kicker">Key idea · Workspace</div>
+    <h2>A workspace is <span class="em">just a git worktree</span>.</h2>
+    <div class="grid body" style="margin-top:64px; align-items:center">
+      <div class="span-7" style="grid-column:span 7"><img class="shot frame" src="assets/new-workspace.jpg" alt="New Conductor workspace: branched from origin/main into its own folder"></div>
+      <div class="stack" style="grid-column:span 5">
+        <div class="card"><h3>1 workspace</h3><p>One feature, fix or issue.</p></div>
+        <div class="op">=</div>
+        <div class="card"><h3>1 git worktree</h3><p>Its own files on disk.</p></div>
+        <div class="op">=</div>
+        <div class="card"><h3>1 branch</h3><p>From origin/main, shipped as one PR.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · Agents -->
+  <section class="slide">
+    <div class="kicker">Key idea · Agents</div>
+    <h2>It uses the agents <span class="em">you already have</span>.</h2>
+    <div class="chips body">
+      <div class="chip">Claude Code</div>
+      <div class="chip">Codex</div>
+      <div class="chip">Cursor</div>
+      <div class="chip">OpenCode</div>
+    </div>
+    <p class="lede">Your own subscriptions and keys. Plan mode is handy for bigger changes.</p>
+  </section>
+
+  <!-- 7 · Repo config -->
+  <section class="slide">
+    <div class="kicker">Worth setting up</div>
+    <h2>Two scripts and new workspaces <span class="em">just run</span>.</h2>
+    <pre class="body"><span class="c"># .conductor/settings.toml</span>
+[scripts]
+<span class="k">setup</span> = "pnpm install"                       <span class="c"># on create</span>
+<span class="k">run</span>   = "pnpm dev --port $CONDUCTOR_PORT"    <span class="c"># Run button</span></pre>
+    <p class="lede" style="max-width:48ch">Each workspace gets its own port, so you can run several dev servers at once.</p>
+  </section>
+
+  <!-- 8 · Review & ship -->
+  <section class="slide">
+    <div class="kicker">Key idea · Review</div>
+    <h2>The agents write. You still review.</h2>
+    <div class="grid body">
+      <div class="card span-4"><div class="num"><kbd>⌘⇧D</kbd></div><h3>Diff Viewer</h3><p>Read every change the agent made.</p></div>
+      <div class="card span-4" style="border-color:var(--accent)"><div class="num">Checks tab</div><h3>Merge readiness</h3><p>Git status, CI, deploys, comments, todos.</p></div>
+      <div class="card span-4"><div class="num"><kbd>⌘⇧P</kbd></div><h3>Pull request</h3><p>Open, fix failing checks, merge, archive.</p></div>
+    </div>
+  </section>
+
+  <!-- 9 · Parallel patterns -->
+  <section class="slide">
+    <div class="kicker">Tip · Parallel agents</div>
+    <h2>When to split, and when not to.</h2>
+    <div class="grid body">
+      <div class="card span-6" style="border-color:var(--accent)"><div class="num">Many workspaces</div><h3>Independent tasks</h3><p>Separate features, bugs or issues. Each moves and merges on its own.</p></div>
+      <div class="card span-6"><div class="num">One workspace</div><h3>Shared code state</h3><p>One agent builds while another reviews the same diff.</p></div>
+    </div>
+  </section>
+
+  <!-- 10 · Trade-offs -->
+  <section class="slide">
+    <div class="kicker">Trade-offs</div>
+    <h2>Parallel isn&rsquo;t free.</h2>
+    <div class="grid body" style="margin-top:64px; row-gap:32px">
+      <div class="card span-6" style="border-color:var(--accent)"><h3>Review is the new bottleneck</h3><p>More agents means more diffs and PRs for you to read.</p></div>
+      <div class="card span-6"><h3>Usage limits drain faster</h3><p>Parallel agents share one subscription or API budget.</p></div>
+      <div class="card span-6"><h3>Disk and setup per workspace</h3><p>Each worktree is a full checkout, plus its own dependency install.</p></div>
+      <div class="card span-6"><h3>Not a sandbox, Mac only</h3><p>Workspaces isolate code, not security. The desktop app is macOS only.</p></div>
+    </div>
+  </section>
+
+  <!-- 11 · Cloud + close -->
+  <section class="slide title-slide">
+    <div class="kicker">Worth knowing</div>
+    <h2>There&rsquo;s a cloud version too.</h2>
+    <p class="lede" style="max-width:40ch">Same workflow in remote sandboxes. Out of scope for today.</p>
+    <div class="cta">Try it → conductor.build</div>
+  </section>
+
+  <div class="brand"><svg viewBox="0 0 115 174" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="m1__20251" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="36" width="23" height="29">
+<path d="M0.499023 63.6992V37.251H22.373V63.6992H0.499023Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#m1__20251)">
+<path d="M4.57422 63.6992H22.373V37.251H4.57422C3.58785 37.2511 2.78711 38.0517 2.78711 39.0381V61.9121C2.78725 62.8984 3.58794 63.6991 4.57422 63.6992Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask1_1" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="18" y="36" width="24" height="29">
+<path d="M18.7979 63.6992V37.251H40.6719V63.6992H18.7979Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask1_1)">
+<path d="M36.5977 63.6992H18.7988V37.251H36.5977C37.584 37.2511 38.3848 38.0517 38.3848 39.0381V61.9121C38.3846 62.8984 37.5839 63.6991 36.5977 63.6992Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask2_1" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="73" width="23" height="28">
+<path d="M0.499023 100.297V73.8486H22.373V100.297H0.499023Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask2_1)">
+<path d="M4.57422 100.297H22.373V73.8486H4.57422C3.58785 73.8488 2.78711 74.6493 2.78711 75.6357V98.5098C2.78725 99.496 3.58794 100.297 4.57422 100.297Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask3_1" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="18" y="73" width="24" height="28">
+<path d="M18.7979 100.297V73.8486H40.6719V100.297H18.7979Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask3_1)">
+<path d="M36.5977 100.297H18.7988V73.8486H36.5977C37.584 73.8488 38.3848 74.6493 38.3848 75.6357V98.5098C38.3846 99.496 37.5839 100.297 36.5977 100.297Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask4_1" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="109" width="23" height="29">
+<path d="M0.499023 136.896V110.447H22.373V136.896H0.499023Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask4_1)">
+<path d="M4.57422 136.896H22.373V110.447H4.57422C3.58785 110.447 2.78711 111.248 2.78711 112.234V135.108C2.78725 136.095 3.58794 136.895 4.57422 136.896Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask5_1" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="18" y="109" width="24" height="29">
+<path d="M18.7979 136.896V110.447H40.6719V136.896H18.7979Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask5_1)">
+<path d="M36.5977 136.896H18.7988V110.447H36.5977C37.584 110.447 38.3848 111.248 38.3848 112.234V135.108C38.3846 136.095 37.5839 136.895 36.5977 136.896Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask6_1" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="18" y="146" width="24" height="28">
+<path d="M18.7979 173.493V147.045H40.6719V173.493H18.7979Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask6_1)">
+<path d="M22.873 173.493H40.6719V147.045H22.873C21.8867 147.045 21.0859 147.846 21.0859 148.832V171.706C21.0861 172.692 21.8868 173.493 22.873 173.493Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask7_1" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="36" y="146" width="24" height="28">
+<path d="M37.0967 173.493V147.045H58.9707V173.493H37.0967Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask7_1)">
+<path d="M37.0967 173.493V147.045H58.9707V173.493H37.0967Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask8_1" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="54" y="146" width="24" height="28">
+<path d="M55.3955 173.493V147.045H77.2695V173.493H55.3955Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask8_1)">
+<path d="M55.3955 173.493V147.045H77.2695V173.493H55.3955Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask9_1" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="73" y="146" width="24" height="28">
+<path d="M73.6963 173.493V147.045H95.5703V173.493H73.6963Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask9_1)">
+<path d="M91.4941 173.493H73.6953V147.045H91.4941C92.4805 147.045 93.2812 147.846 93.2812 148.832V171.706C93.2811 172.692 92.4804 173.493 91.4941 173.493Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask10_1" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="73" y="109" width="24" height="29">
+<path d="M73.6963 136.896V110.447H95.5703V136.896H73.6963Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask10_1)">
+<path d="M77.7695 136.896H95.5684V110.447H77.7695C76.7832 110.447 75.9824 111.248 75.9824 112.234V135.108C75.9826 136.095 76.7833 136.895 77.7695 136.896Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask11_1" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="91" y="109" width="24" height="29">
+<path d="M91.9932 136.896V110.447H113.867V136.896H91.9932Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask11_1)">
+<path d="M109.793 136.896H91.9941V110.447H109.793C110.779 110.447 111.58 111.248 111.58 112.234V135.108C111.58 136.095 110.779 136.895 109.793 136.896Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask12_1" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="18" y="0" width="24" height="28">
+<path d="M18.7979 27.1006V0.652344H40.6719V27.1006H18.7979Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask12_1)">
+<path d="M22.873 27.1006H40.6719V0.652344H22.873C21.8867 0.652488 21.0859 1.45305 21.0859 2.43945V25.3135C21.0861 26.2998 21.8868 27.1004 22.873 27.1006Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask13_1" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="36" y="0" width="24" height="28">
+<path d="M37.0967 27.1006V0.652344H58.9707V27.1006H37.0967Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask13_1)">
+<path d="M37.0967 27.1006V0.652344H58.9707V27.1006H37.0967Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask14_1" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="54" y="0" width="24" height="28">
+<path d="M55.3955 27.1006V0.652344H77.2695V27.1006H55.3955Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask14_1)">
+<path d="M55.3955 27.1006V0.652344H77.2695V27.1006H55.3955Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask15_1" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="73" y="0" width="24" height="28">
+<path d="M73.6963 27.1006V0.652344H95.5703V27.1006H73.6963Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask15_1)">
+<path d="M73.6963 27.1006V0.652344H95.5703V27.1006H73.6963Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask16_1" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="91" y="0" width="24" height="28">
+<path d="M91.9932 27.1006V0.652344H113.867V27.1006H91.9932Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask16_1)">
+<path d="M109.793 27.1006H91.9941V0.652344H109.793C110.779 0.652488 111.58 1.45305 111.58 2.43945V25.3135C111.58 26.2998 110.779 27.1004 109.793 27.1006Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask17_1" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="73" y="36" width="24" height="29">
+<path d="M73.6963 63.6992V37.251H95.5703V63.6992H73.6963Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask17_1)">
+<path d="M77.7695 63.6992H95.5684V37.251H77.7695C76.7832 37.2511 75.9824 38.0517 75.9824 39.0381V61.9121C75.9826 62.8984 76.7833 63.6991 77.7695 63.6992Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+<mask id="mask18_1" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="91" y="36" width="24" height="29">
+<path d="M91.9932 63.6992V37.251H113.867V63.6992H91.9932Z" fill="white" stroke="white"/>
+</mask>
+<g mask="url(#mask18_1)">
+<path d="M109.793 63.6992H91.9941V37.251H109.793C110.779 37.2511 111.58 38.0517 111.58 39.0381V61.9121C111.58 62.8984 110.779 63.6991 109.793 63.6992Z" fill="#eae8e6" stroke="#eae8e6"/>
+</g>
+</svg>
+<span>Conductor</span></div>
+  <div class="counter" id="counter"></div>
+</div>
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  const counter = document.getElementById('counter');
+  const stage = document.getElementById('stage');
+  let i = Math.max(0, Math.min(slides.length - 1, (parseInt(location.hash.slice(1), 10) || 1) - 1));
+
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
+    counter.textContent = String(i + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
+    history.replaceState(null, '', '#' + (i + 1));
+  }
+  function fit() {
+    const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.transform = 'translate(-50%, -50%) scale(' + s + ')';
+  }
+  addEventListener('keydown', e => {
+    if (['ArrowRight', 'ArrowDown', ' ', 'PageDown'].includes(e.key)) { e.preventDefault(); show(i + 1); }
+    if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); show(i - 1); }
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End') show(slides.length - 1);
+  });
+  addEventListener('click', e => show(e.clientX > innerWidth / 2 ? i + 1 : i - 1));
+  addEventListener('resize', fit);
+  fit(); show(i);
+</script>
+</body>
+</html>
